@@ -67,11 +67,13 @@ public class DocenteAsistenciaController {
             } else {
                 return ResponseEntity.badRequest().body(Map.of("message", response.getMessage()));
             }
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", e.getReason() != null ? e.getReason() : e.getMessage()));
         } catch (io.grpc.StatusRuntimeException e) {
             if (e.getStatus().getCode() == io.grpc.Status.Code.ALREADY_EXISTS) {
                 return ResponseEntity.status(409).body(Map.of("message", e.getStatus().getDescription()));
             }
-            return ResponseEntity.badRequest().body(Map.of("message", e.getStatus().getDescription()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getStatus().getDescription() != null ? e.getStatus().getDescription() : e.getMessage()));
         }
     }
 
@@ -117,26 +119,35 @@ public class DocenteAsistenciaController {
             builder.setFecha(fecha);
         }
         
-        AsistenciaListResponse response = asistenciaClient.consultarAsistencia(builder.build());
-        
-        List<Map<String, Object>> asistencias = response.getAsistenciasList().stream()
-            .map(a -> {
-                java.util.Map<String, Object> map = new java.util.HashMap<>();
-                map.put("id_asistencia", a.getIdAsistencia());
-                map.put("id_matricula", a.getIdMatricula());
-                map.put("id_asignacion", a.getIdAsignacion());
-                map.put("id_periodo", a.getIdPeriodo());
-                map.put("fecha", a.getFecha());
-                map.put("estado", a.getEstado());
-                map.put("justificacion", a.getJustificacion());
-                return map;
-            })
-            .collect(Collectors.toList());
+        try {
+            AsistenciaListResponse response = asistenciaClient.consultarAsistencia(builder.build());
             
-        return ResponseEntity.ok(Map.of(
-            "success", true,
-            "asistencias", asistencias
-        ));
+            List<Map<String, Object>> asistencias = response.getAsistenciasList().stream()
+                .map(a -> {
+                    java.util.Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id_asistencia", a.getIdAsistencia());
+                    map.put("id_matricula", a.getIdMatricula());
+                    map.put("id_asignacion", a.getIdAsignacion());
+                    map.put("id_periodo", a.getIdPeriodo());
+                    map.put("fecha", a.getFecha());
+                    map.put("estado", a.getEstado());
+                    map.put("justificacion", a.getJustificacion());
+                    return map;
+                })
+                .collect(Collectors.toList());
+                
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "asistencias", asistencias
+            ));
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (io.grpc.StatusRuntimeException e) {
+            return ResponseEntity.status(e.getStatus().getCode() == io.grpc.Status.Code.PERMISSION_DENIED ? 403 : 400)
+                    .body(Map.of("message", e.getStatus().getDescription() != null ? e.getStatus().getDescription() : e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Error al consultar asistencia: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/asignacion/{idAsignacion}/resumen")
@@ -151,27 +162,36 @@ public class DocenteAsistenciaController {
                 .setIdMatricula(idMatricula)
                 .build();
                 
-        ResumenAsistenciaListResponse response = asistenciaClient.consultarResumenAsistencia(request);
-        
-        List<Map<String, Object>> resumenes = response.getResumenesList().stream()
-            .map(r -> {
-                java.util.Map<String, Object> map = new java.util.HashMap<>();
-                map.put("id_resumen", r.getIdResumen());
-                map.put("id_matricula", r.getIdMatricula());
-                map.put("id_asignacion", r.getIdAsignacion());
-                map.put("id_periodo", r.getIdPeriodo());
-                map.put("total_presentes", r.getTotalPresentes());
-                map.put("total_ausentes", r.getTotalAusentes());
-                map.put("total_justificados", r.getTotalJustificados());
-                map.put("total_atrasos", r.getTotalAtrasos());
-                map.put("porcentaje_asistencia", r.getPorcentajeAsistencia());
-                return map;
-            })
-            .collect(Collectors.toList());
+        try {
+            ResumenAsistenciaListResponse response = asistenciaClient.consultarResumenAsistencia(request);
             
-        return ResponseEntity.ok(Map.of(
-            "success", true,
-            "resumenes", resumenes
-        ));
+            List<Map<String, Object>> resumenes = response.getResumenesList().stream()
+                .map(r -> {
+                    java.util.Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id_resumen", r.getIdResumen());
+                    map.put("id_matricula", r.getIdMatricula());
+                    map.put("id_asignacion", r.getIdAsignacion());
+                    map.put("id_periodo", r.getIdPeriodo());
+                    map.put("total_presentes", r.getTotalPresentes());
+                    map.put("total_ausentes", r.getTotalAusentes());
+                    map.put("total_justificados", r.getTotalJustificados());
+                    map.put("total_atrasos", r.getTotalAtrasos());
+                    map.put("porcentaje_asistencia", r.getPorcentajeAsistencia());
+                    return map;
+                })
+                .collect(Collectors.toList());
+                
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "resumenes", resumenes
+            ));
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (io.grpc.StatusRuntimeException e) {
+            return ResponseEntity.status(e.getStatus().getCode() == io.grpc.Status.Code.PERMISSION_DENIED ? 403 : 400)
+                    .body(Map.of("message", e.getStatus().getDescription() != null ? e.getStatus().getDescription() : e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Error al consultar resumen: " + e.getMessage()));
+        }
     }
 }
